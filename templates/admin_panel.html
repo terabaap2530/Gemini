@@ -1,80 +1,78 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>MASTER AXSHU PANEL</title>
+  <title>Admin Panel</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <style>
+    body {
+      background: url("/static/bg.jpg") no-repeat center center fixed;
+      background-size: cover;
+      color: white;
+    }
+    .panel-box {
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.6);
+    }
+    .logs-box {
+      background: black;
+      color: #0f0;
+      font-family: monospace;
+      padding: 10px;
+      border-radius: 8px;
+      height: 300px;
+      overflow-y: auto;
+    }
+    .navbar-custom {
+      background: rgba(0,0,0,0.85);
+    }
+  </style>
 </head>
-<body class="bg-dark text-white">
-  <div class="container py-5">
-    <h2 class="text-center text-info mb-4">MASTER AXSHU PANEL</h2>
+<body>
+  <!-- ✅ Navbar -->
+  <nav class="navbar navbar-dark navbar-custom px-3">
+    <a class="navbar-brand text-info" href="#">Admin Panel</a>
+    <div>
+      <a href="{{ url_for('index') }}" class="btn btn-sm btn-secondary">Home</a>
+      <a href="{{ url_for('admin_logout') }}" class="btn btn-sm btn-danger">Logout</a>
+    </div>
+  </nav>
 
-    <ul class="nav nav-tabs mb-3" id="myTab" role="tablist">
-      <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#sessions">📂 Sessions</button></li>
-      <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#logs">📜 Logs</button></li>
-    </ul>
+  <div class="container py-4">
+    <div class="panel-box">
+      <h3 class="text-info">Active Users</h3>
+      {% if users %}
+        <ul class="list-group mb-3">
+          {% for u in users %}
+          <li class="list-group-item bg-dark text-white d-flex justify-content-between align-items-center">
+            <div>
+              <b>Thread ID:</b> {{ u.thread_id }} |
+              <b>Prefix:</b> {{ u.prefix }} |
+              <b>Interval:</b> {{ u.interval }}s |
+              <b>Messages:</b> {{ u.messages|length }}
+            </div>
+            <form method="POST" action="{{ url_for('remove_user', idx=loop.index0) }}">
+              <button class="btn btn-sm btn-danger">Remove</button>
+            </form>
+          </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted">No active users.</p>
+      {% endif %}
 
-    <div class="tab-content">
-      <!-- Sessions Tab -->
-      <div class="tab-pane fade show active" id="sessions">
-        <div class="table-responsive">
-          <table class="table table-dark table-striped table-bordered align-middle text-center">
-            <thead class="table-light text-dark">
-              <tr>
-                <th>Index</th><th>Thread ID</th><th>Prefix</th><th>Interval</th><th>Tokens</th><th>Messages</th><th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for user in users %}
-              <tr>
-                <td>{{ loop.index0 }}</td>
-                <td>{{ user.thread_id }}</td>
-                <td>{{ user.prefix }}</td>
-                <td>{{ user.interval }}</td>
-                <td>{{ user.tokens|length }}</td>
-                <td>{{ user.messages|length }}</td>
-                <td>
-                  <form method="POST" action="/admin/remove/{{ loop.index0 }}" style="display:inline;">
-                    <button type="submit" class="btn btn-sm btn-danger">❌ Remove</button>
-                  </form>
-                </td>
-              </tr>
-              {% else %}
-              <tr><td colspan="7" class="text-muted">No active sessions</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Stop Button -->
-        <div class="text-center mt-3">
-          <form method="POST" action="/admin/stop">
-            <button type="submit" class="btn btn-lg btn-danger">🛑 Stop Messages</button>
-          </form>
-        </div>
-      </div>
-
-      <!-- Logs Tab -->
-      <div class="tab-pane fade" id="logs">
-        <div class="bg-black p-3 rounded" style="height:400px; overflow-y:scroll;">
-          <pre id="log-box" class="text-success">{{ logs }}</pre>
-        </div>
-      </div>
+      <form method="POST" action="{{ url_for('stop_threads') }}">
+        <button class="btn btn-warning">🛑 Stop All Threads</button>
+      </form>
     </div>
 
-    <div class="text-center mt-3">
-      <a href="/admin/logout" class="btn btn-warning">🔒 Logout</a>
+    <div class="panel-box mt-4">
+      <h3 class="text-info">Logs</h3>
+      <div class="logs-box">
+        <pre>{{ logs }}</pre>
+      </div>
     </div>
   </div>
-
-  <script>
-    setInterval(function(){
-      fetch('/admin/logs')
-        .then(res => res.text())
-        .then(data => { document.getElementById('log-box').innerText = data; });
-    }, 3000);
-  </script>
 </body>
 </html>

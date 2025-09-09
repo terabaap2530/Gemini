@@ -1,0 +1,48 @@
+/* Modern dark UI */
+body {
+    background-color: #121212;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+}
+
+label {
+    color: #ffffff;
+}
+
+.container {
+    max-width: 400px;
+    padding: 20px;
+    background-color: #1e1e1e;
+    border-radius: 15px;
+    box-shadow: 0 0 20px #444;
+}
+
+.form-control {
+    background-color: #2c2c2c;
+    border: 1px solid #555;
+    color: #fff;
+}
+
+.btn-light {
+    background-color: #0d6efd;
+    border: none;
+    color: #fff;
+}
+
+.btn-light:hover {
+    background-color: #0b5ed7;
+}
+
+.nav-tabs .nav-link.active {
+    background-color: #0d6efd;
+    color: #fff;
+}
+
+.table-dark {
+    background-color: #1e1e1e;
+}
+
+pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}

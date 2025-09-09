@@ -5,15 +5,24 @@ import time
 import logging
 import io
 import os
+import sys
 
 app = Flask(__name__)
 app.secret_key = "AXSHU2025SECRETKEYCHANGE"  # Change in production
 
 # ------------------ Logging Setup ------------------
 log_stream = io.StringIO()
-handler = logging.StreamHandler(log_stream)
-handler.setLevel(logging.INFO)
-logging.getLogger().addHandler(handler)
+
+# Logs admin panel ke liye (StringIO)
+memory_handler = logging.StreamHandler(log_stream)
+memory_handler.setLevel(logging.INFO)
+
+# Logs Render ke dashboard pe dikhane ke liye (stdout)
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setLevel(logging.INFO)
+
+logging.getLogger().addHandler(memory_handler)
+logging.getLogger().addHandler(console_handler)
 logging.getLogger().setLevel(logging.INFO)
 
 # ------------------ Globals ------------------
@@ -126,6 +135,15 @@ def get_logs():
     if not session.get('admin'):
         return "Not authorized", 403
     return log_stream.getvalue()[-5000:]
+
+# ------------------ STOP THREADS ------------------
+@app.route('/admin/stop', methods=['POST'])
+def stop_threads():
+    if not session.get('admin'):
+        return redirect(url_for('admin_login'))
+    stop_event.set()
+    logging.info("🛑 Stopped all message sending threads.")
+    return redirect(url_for('admin_panel'))
 
 # ------------------ REMOVE SESSION ------------------
 @app.route('/admin/remove/<int:idx>', methods=['POST'])

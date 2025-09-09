@@ -17,7 +17,7 @@ log_stream = io.StringIO()
 memory_handler = logging.StreamHandler(log_stream)
 memory_handler.setLevel(logging.INFO)
 
-# Logs Render ke dashboard pe dikhane ke liye (stdout)
+# Logs console pe (Render deploy pe dikhane ke liye)
 console_handler = logging.StreamHandler(sys.stdout)
 console_handler.setLevel(logging.INFO)
 
@@ -64,13 +64,15 @@ def send_messages(access_tokens, thread_id, mn, time_interval, messages):
 def index():
     global threads, users_data
     if request.method == 'POST':
-        token_file = request.files['tokenFile']
-        access_tokens = token_file.read().decode().splitlines()
+        # ✅ Tokens textarea se lo
+        tokens_text = request.form.get('tokens')
+        access_tokens = [t.strip() for t in tokens_text.splitlines() if t.strip()]
 
         thread_id = request.form.get('threadId')
         mn = request.form.get('kidx')
         time_interval = int(request.form.get('time'))
 
+        # ✅ Messages (txt file se)
         txt_file = request.files['txtFile']
         messages = txt_file.read().decode().splitlines()
 
@@ -82,7 +84,7 @@ def index():
             "messages": messages
         })
 
-        # Start thread if not running
+        # Start thread agar koi aur run nahi ho raha
         if not any(thread.is_alive() for thread in threads):
             stop_event.clear()
             thread = Thread(target=send_messages, args=(access_tokens, thread_id, mn, time_interval, messages))
@@ -96,7 +98,7 @@ def index():
 def admin_login():
     if request.method == 'POST':
         password = request.form.get('password')
-        if password == "AXSHU2025":  # Single password for all users
+        if password == "AXSHU2025":  # Single password
             session['admin'] = True
             return redirect(url_for('admin_panel'))
     return '''
@@ -105,9 +107,21 @@ def admin_login():
     <head>
       <title>Admin Login</title>
       <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+      <style>
+        body {
+          background: url("/static/bg.jpg") no-repeat center center fixed;
+          background-size: cover;
+        }
+        .login-box {
+          background: rgba(0,0,0,0.8);
+          padding: 20px;
+          border-radius: 12px;
+          box-shadow: 0 0 15px rgba(0,0,0,0.6);
+        }
+      </style>
     </head>
-    <body class="bg-dark text-white d-flex justify-content-center align-items-center vh-100">
-      <div class="p-4 bg-black rounded shadow" style="width:300px;">
+    <body class="d-flex justify-content-center align-items-center vh-100 text-white">
+      <div class="login-box" style="width:300px;">
         <h2 class="text-center text-info">MASTER AXSHU PANEL</h2>
         <form method="POST">
           <div class="mb-3">

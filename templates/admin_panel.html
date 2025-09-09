@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </head>
-<body>
+<body class="bg-dark text-white">
   <div class="container py-5">
     <h2 class="text-center text-info mb-4">MASTER AXSHU PANEL</h2>
 
@@ -17,6 +17,7 @@
     </ul>
 
     <div class="tab-content">
+      <!-- Sessions Tab -->
       <div class="tab-pane fade show active" id="sessions">
         <div class="table-responsive">
           <table class="table table-dark table-striped table-bordered align-middle text-center">
@@ -26,26 +27,36 @@
               </tr>
             </thead>
             <tbody>
-              {% for idx, user in users %}
+              {% for user in users %}
               <tr>
-                <td>{{ idx }}</td>
+                <td>{{ loop.index0 }}</td>
                 <td>{{ user.thread_id }}</td>
                 <td>{{ user.prefix }}</td>
                 <td>{{ user.interval }}</td>
                 <td>{{ user.tokens|length }}</td>
                 <td>{{ user.messages|length }}</td>
                 <td>
-                  <form method="POST" action="/admin/remove/{{ idx }}">
+                  <form method="POST" action="/admin/remove/{{ loop.index0 }}" style="display:inline;">
                     <button type="submit" class="btn btn-sm btn-danger">❌ Remove</button>
                   </form>
                 </td>
               </tr>
+              {% else %}
+              <tr><td colspan="7" class="text-muted">No active sessions</td></tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
+
+        <!-- Stop Button -->
+        <div class="text-center mt-3">
+          <form method="POST" action="/admin/stop">
+            <button type="submit" class="btn btn-lg btn-danger">🛑 Stop Messages</button>
+          </form>
+        </div>
       </div>
 
+      <!-- Logs Tab -->
       <div class="tab-pane fade" id="logs">
         <div class="bg-black p-3 rounded" style="height:400px; overflow-y:scroll;">
           <pre id="log-box" class="text-success">{{ logs }}</pre>

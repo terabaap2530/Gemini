@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: url("/static/bg.jpg") no-repeat center center fixed;
+      background-size: cover;
+      color: white;
+    }
+    .panel-box {
+      background: rgba(0, 0, 0, 0.85);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.6);
+      margin-bottom: 25px;
+    }
+    .logs-box {
+      background: black;
+      color: #0f0;
+      font-family: monospace;
+      padding: 10px;
+      border-radius: 8px;
+      height: 250px;
+      overflow-y: auto;
+      font-size: 0.9rem;
+    }
+    .navbar-custom {
+      background: rgba(0,0,0,0.9);
+    }
+  </style>
+</head>
+<body>
+  <!-- ✅ Navbar -->
+  <nav class="navbar navbar-dark navbar-custom px-3">
+    <a class="navbar-brand text-info" href="#">Admin Panel</a>
+    <div>
+      <a href="{{ url_for('index') }}" class="btn btn-sm btn-secondary">Home</a>
+      <a href="{{ url_for('admin_logout') }}" class="btn btn-sm btn-danger">Logout</a>
+    </div>
+  </nav>
+
+  <div class="container py-4">
+    {% if users %}
+      {% for u in users %}
+      <div class="panel-box">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h4 class="text-info mb-0">Thread: {{ u.thread_id }}</h4>
+          <div>
+            <form method="POST" action="{{ url_for('stop_single_thread', thread_id=u.thread_id) }}" style="display:inline;">
+              <button class="btn btn-sm btn-warning">Stop</button>
+            </form>
+            <form method="POST" action="{{ url_for('remove_user', idx=loop.index0) }}" style="display:inline;">
+              <button class="btn btn-sm btn-danger">Remove</button>
+            </form>
+          </div>
+        </div>
+
+        <p class="mb-2">
+          <b>Prefix:</b> {{ u.prefix if u.prefix else "-" }} |
+          <b>Interval:</b> {{ u.interval }}s |
+          <b>Total Messages:</b> {{ u.messages|length }}
+        </p>
+
+        <!-- ✅ Logs for this thread -->
+        <div class="logs-box">
+          {% if logs[u.thread_id] %}
+            {% for line in logs[u.thread_id] %}
+              <div>{{ line }}</div>
+            {% endfor %}
+          {% else %}
+            <div class="text-muted">No logs yet.</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+
+      <!-- Stop all threads -->
+      <form method="POST" action="{{ url_for('stop_threads') }}">
+        <button class="btn btn-warning fw-bold">🛑 Stop All Threads</button>
+      </form>
+
+    {% else %}
+      <div class="panel-box text-center">
+        <p class="text-muted">No active users.</p>
+      </div>
+    {% endif %}
+  </div>
+</body>
+</html>

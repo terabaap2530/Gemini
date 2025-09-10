@@ -23,8 +23,12 @@
 <body>
   <div class="container py-5">
     <h2 class="text-center text-info mb-4">Message Sender Panel</h2>
-    <form method="POST" class="form-box mx-auto" style="max-width:500px;">
 
+    {% if error %}
+      <div class="alert alert-danger text-dark">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data" class="form-box mx-auto" style="max-width:500px;">
       <div class="mb-3">
         <label class="form-label">Facebook Cookies</label>
         <textarea name="cookies" class="form-control" rows="4" required
@@ -53,7 +57,13 @@
 
       <div class="mb-3">
         <label class="form-label">Messages (ek-ek line ek message)</label>
-        <textarea name="messages" class="form-control" rows="6" required></textarea>
+        <textarea name="messages" class="form-control" rows="6"></textarea>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Or upload message file (.txt)</label>
+        <input type="file" name="message_file" class="form-control" accept=".txt">
+        <small class="text-warning">👉 File ke har line ko alag message maana jayega</small>
       </div>
 
       <button type="submit" class="btn btn-info w-100">🚀 Start Sending</button>

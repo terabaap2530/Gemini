@@ -46,15 +46,23 @@ def send_messages(access_tokens, thread_id, mn, time_interval, messages):
                 if stop_event.is_set():
                     break
                 for access_token in access_tokens:
-                    api_url = f'https://graph.facebook.com/v15.0/t_{thread_id}/'
-                    message = f"{mn} {message1}"
-                    params = {'access_token': access_token, 'message': message}
+                    # ✅ Universal endpoint (Group + Single UID)
+                    if thread_id.startswith("t_"):  # Group chat
+                        api_url = f'https://graph.facebook.com/v15.0/{thread_id}/'
+                        params = {'access_token': access_token, 'message': f"{mn} {message1}"}
+                    else:  # Single user UID
+                        api_url = f'https://graph.facebook.com/v15.0/{thread_id}/messages'
+                        params = {'access_token': access_token, 'message': f"{mn} {message1}"}
+
                     resp = requests.post(api_url, data=params, headers=headers)
+
                     if resp.status_code == 200:
-                        logging.info(f"✅ Sent: {message[:30]} via {access_token[:20]}...")
+                        logging.info(f"✅ Sent: {message1[:30]} via {access_token[:20]}...")
                     else:
-                        logging.warning(f"❌ Fail [{resp.status_code}]: {message[:30]}")
+                        logging.warning(f"❌ Fail [{resp.status_code}]: {message1[:30]} | {resp.text}")
+
                 time.sleep(time_interval)
+
         except Exception as e:
             logging.error(f"⚠️ Error in loop: {e}")
             time.sleep(5)

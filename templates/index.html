@@ -15,6 +15,9 @@
       border-radius: 12px;
       box-shadow: 0 0 20px rgba(0,0,0,0.5);
     }
+    label {
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
@@ -28,13 +31,17 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Thread ID</label>
+        <label class="form-label">Thread ID / UID</label>
         <input type="text" name="threadId" class="form-control" required>
+        <small class="text-warning">
+          👉 Group ke liye <b>t_123456789</b> likho <br>
+          👉 Single user ke liye sirf <b>UID (123456789)</b> likho
+        </small>
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Prefix (kidx)</label>
-        <input type="text" name="kidx" class="form-control">
+        <label class="form-label">Prefix (optional)</label>
+        <input type="text" name="kidx" class="form-control" placeholder="Har msg ke aage lagne wala prefix">
       </div>
 
       <div class="mb-3">
@@ -45,9 +52,10 @@
       <div class="mb-3">
         <label class="form-label">Messages File (.txt)</label>
         <input type="file" name="txtFile" class="form-control" required>
+        <small class="text-info">Ek-ek line = ek-ek message</small>
       </div>
 
-      <button type="submit" class="btn btn-info w-100">Start Sending</button>
+      <button type="submit" class="btn btn-info w-100">🚀 Start Sending</button>
     </form>
 
     <!-- ✅ Admin panel ka link -->

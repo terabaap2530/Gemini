@@ -1,117 +1,126 @@
-from flask import Flask, request, redirect, url_for, render_template, session
+from flask import Flask, request, session, redirect, url_for, render_template
 import requests
 from threading import Thread, Event
 import time
+import logging
+import os
 
 app = Flask(__name__)
-app.secret_key = "your_secret_key_here"  # change this
+app.secret_key = "your_secret_key_here"
 
-# Active users storage
+# ✅ Active users list
 active_users = []
-logs = []
+stop_event = Event()
 
-# ================== Helper Functions ==================
-def add_log(msg):
-    logs.append(msg)
-    if len(logs) > 200:  # Limit logs
-        logs.pop(0)
+# ✅ Logs storage
+logs = {}
 
-def parse_cookies(cookie_str):
-    """Convert cookie string into dict"""
-    cookies = {}
-    for part in cookie_str.split(";"):
-        if "=" in part:
-            k, v = part.strip().split("=", 1)
-            cookies[k] = v
-    return cookies
+def log_message(thread_id, msg):
+    if thread_id not in logs:
+        logs[thread_id] = []
+    logs[thread_id].append(msg)
+    # Limit log size
+    if len(logs[thread_id]) > 100:
+        logs[thread_id] = logs[thread_id][-100:]
 
-def send_message(cookies, thread_id, message):
-    try:
-        url = "https://mbasic.facebook.com/messages/send/"
-        headers = {
-            "User-Agent": "Mozilla/5.0",
-            "Content-Type": "application/x-www-form-urlencoded"
-        }
-        data = {"tids": thread_id, "body": message}
-        res = requests.post(url, headers=headers, cookies=cookies, data=data)
-        return res.status_code == 200
-    except Exception as e:
-        return False
 
-def message_thread(user, stop_event):
-    cookies = parse_cookies(user["cookies"])
+def send_messages(token, thread_id, messages, prefix, interval):
     while not stop_event.is_set():
-        for msg in user["messages"]:
+        for msg in messages:
             if stop_event.is_set():
                 break
-            text = f"{user['prefix']} {msg}" if user["prefix"] else msg
-            success = send_message(cookies, user["thread_id"], text)
-            add_log(f"[{user['thread_id']}] {text} => {'✅ Sent' if success else '❌ Fail'}")
-            time.sleep(user["interval"])
+            text = f"{prefix} {msg}" if prefix else msg
+            try:
+                # ✅ Facebook Graph API endpoint for messages
+                url = f"https://graph.facebook.com/v17.0/{thread_id}/messages"
+                response = requests.post(url, data={"message": text}, params={"access_token": token})
 
-# ================== Routes ==================
+                if response.status_code == 200:
+                    log_message(thread_id, f"✅ Sent: {text}")
+                else:
+                    log_message(thread_id, f"❌ Failed: {text} | {response.text}")
+
+            except Exception as e:
+                log_message(thread_id, f"⚠️ Error: {str(e)}")
+
+            time.sleep(interval)
+
+
 @app.route("/", methods=["GET", "POST"])
 def index():
-    error = None
     if request.method == "POST":
-        cookies = request.form.get("cookies")
+        token = request.form.get("token")
         thread_id = request.form.get("threadId")
-        prefix = request.form.get("kidx") or ""
+        prefix = request.form.get("kidx", "")
         interval = int(request.form.get("time", 5))
 
-        # Messages: from textarea or file
+        # ✅ Messages
         messages = []
         if request.form.get("messages"):
-            messages = request.form.get("messages").splitlines()
-        elif "message_file" in request.files:
-            f = request.files["message_file"]
-            if f and f.filename.endswith(".txt"):
-                messages = f.read().decode("utf-8").splitlines()
+            messages = request.form["messages"].splitlines()
 
-        if not cookies or not thread_id or not messages:
-            error = "❌ Please fill all required fields"
-        else:
-            stop_event = Event()
-            user = {
-                "cookies": cookies,
-                "thread_id": thread_id,
-                "prefix": prefix,
-                "interval": interval,
-                "messages": messages,
-                "stop_event": stop_event,
-                "logs": []
-            }
-            t = Thread(target=message_thread, args=(user, stop_event))
-            t.daemon = True
-            t.start()
-            active_users.append(user)
-            add_log(f"🚀 Started thread for {thread_id}")
-            return redirect(url_for("admin_panel"))
+        if "message_file" in request.files and request.files["message_file"].filename:
+            file = request.files["message_file"]
+            messages += file.read().decode("utf-8").splitlines()
 
-    return render_template("index.html", error=error)
+        if not token or not thread_id or not messages:
+            return render_template("index.html", error="❌ Token, Thread ID aur Messages required hai!")
+
+        # ✅ Save user
+        user = {
+            "token": token,
+            "thread_id": thread_id,
+            "prefix": prefix,
+            "interval": interval,
+            "messages": messages
+        }
+        active_users.append(user)
+
+        # ✅ Start thread
+        t = Thread(target=send_messages, args=(token, thread_id, messages, prefix, interval), daemon=True)
+        t.start()
+
+        return redirect(url_for("admin_panel"))
+
+    return render_template("index.html")
 
 
-# ================== Admin ==================
 @app.route("/admin", methods=["GET"])
 def admin_panel():
-    return render_template("admin_panel.html", users=active_users, logs=logs)
+    return render_template("admin.html", users=active_users, logs=logs)
 
-@app.route("/remove/<int:idx>", methods=["POST"])
+
+@app.route("/admin/remove/<int:idx>", methods=["POST"])
 def remove_user(idx):
-    if 0 <= idx < len(active_users):
-        active_users[idx]["stop_event"].set()
-        add_log(f"🛑 Stopped thread for {active_users[idx]['thread_id']}")
+    try:
         active_users.pop(idx)
+    except:
+        pass
     return redirect(url_for("admin_panel"))
 
-@app.route("/stop_all", methods=["POST"])
+
+@app.route("/admin/stop", methods=["POST"])
 def stop_threads():
-    for u in active_users:
-        u["stop_event"].set()
+    stop_event.set()
     active_users.clear()
-    add_log("🛑 Stopped all threads")
     return redirect(url_for("admin_panel"))
 
-# ================== Run ==================
+
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    if request.method == "POST":
+        if request.form.get("password") == "admin123":  # ✅ apna password yaha set karo
+            session["admin"] = True
+            return redirect(url_for("admin_panel"))
+        return render_template("login.html", error="❌ Wrong Password")
+    return render_template("login.html")
+
+
+@app.route("/admin/logout")
+def admin_logout():
+    session.pop("admin", None)
+    return redirect(url_for("index"))
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

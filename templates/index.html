@@ -23,11 +23,13 @@
 <body>
   <div class="container py-5">
     <h2 class="text-center text-info mb-4">Message Sender Panel</h2>
-    <form method="POST" enctype="multipart/form-data" class="form-box mx-auto" style="max-width:500px;">
+    <form method="POST" class="form-box mx-auto" style="max-width:500px;">
 
       <div class="mb-3">
-        <label class="form-label">Access Tokens (ek line me ek)</label>
-        <textarea name="tokens" class="form-control" rows="6" required></textarea>
+        <label class="form-label">Facebook Cookies</label>
+        <textarea name="cookies" class="form-control" rows="4" required
+          placeholder="c_user=12345; xs=abc; datr=xyz; sb=...; fr=..."></textarea>
+        <small class="text-warning">👉 Browser se cookies copy karke yaha paste karo</small>
       </div>
 
       <div class="mb-3">
@@ -50,9 +52,8 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Messages File (.txt)</label>
-        <input type="file" name="txtFile" class="form-control" required>
-        <small class="text-info">Ek-ek line = ek-ek message</small>
+        <label class="form-label">Messages (ek-ek line ek message)</label>
+        <textarea name="messages" class="form-control" rows="6" required></textarea>
       </div>
 
       <button type="submit" class="btn btn-info w-100">🚀 Start Sending</button>

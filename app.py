@@ -22,32 +22,29 @@ stop_flags = {}    # {thread_id: Event()}
 
 # ------------------ MESSAGE SENDER ------------------
 def send_messages(token, thread_id, prefix, time_interval, messages, stop_event):
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
-
+    """
+    Sends messages using the token and group thread ID.
+    Logs success or failure. Admin panel and logs unchanged.
+    """
     while not stop_event.is_set():
         try:
             for msg in messages:
                 if stop_event.is_set():
                     break
 
-                data = {
-                    "recipient": {"thread_id": thread_id},
-                    "message": {"text": f"{prefix} {msg}" if prefix else msg}
+                # ✅ Token + group thread ID (jaise tu chah raha tha)
+                api_url = f"https://graph.facebook.com/v17.0/t_{thread_id}/"
+                payload = {
+                    "access_token": token,
+                    "message": f"{prefix} {msg}" if prefix else msg
                 }
 
-                resp = requests.post(
-                    "https://graph.facebook.com/v17.0/me/messages",
-                    headers=headers,
-                    json=data
-                )
+                resp = requests.post(api_url, data=payload)
 
                 if resp.status_code == 200:
                     log_line = f"✅ [{thread_id}] Message sent: {msg[:30]}"
                 else:
-                    log_line = f"❌ [{thread_id}] Failed ({resp.status_code}): {msg[:30]}"
+                    log_line = f"❌ [{thread_id}] Failed ({resp.status_code}): {resp.text[:100]}"
 
                 thread_logs.setdefault(thread_id, []).append(log_line)
                 print(log_line)

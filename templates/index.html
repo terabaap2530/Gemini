@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>Message Sender</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
@@ -10,68 +11,82 @@
       color: white;
     }
     .form-box {
-      background: rgba(0, 0, 0, 0.7);
-      padding: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 25px;
       border-radius: 12px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      box-shadow: 0 0 20px rgba(0,0,0,0.6);
     }
     label {
       font-weight: bold;
+    }
+    .note {
+      font-size: 0.9rem;
+      color: #ffc107;
     }
   </style>
 </head>
 <body>
   <div class="container py-5">
-    <h2 class="text-center text-info mb-4">Message Sender Panel</h2>
+    <h2 class="text-center text-info mb-4">🚀 Message Sender Panel</h2>
 
     {% if error %}
-      <div class="alert alert-danger text-dark">{{ error }}</div>
+      <div class="alert alert-danger text-center">
+        {{ error }}
+      </div>
     {% endif %}
 
-    <form method="POST" enctype="multipart/form-data" class="form-box mx-auto" style="max-width:500px;">
+    <form method="POST" enctype="multipart/form-data" class="form-box mx-auto" style="max-width:550px;">
+      
+      <!-- Cookies -->
       <div class="mb-3">
         <label class="form-label">Facebook Cookies</label>
         <textarea name="cookies" class="form-control" rows="4" required
           placeholder="c_user=12345; xs=abc; datr=xyz; sb=...; fr=..."></textarea>
-        <small class="text-warning">👉 Browser se cookies copy karke yaha paste karo</small>
+        <div class="note mt-1">👉 Browser se cookies copy karke yaha paste karo</div>
       </div>
 
+      <!-- Thread ID -->
       <div class="mb-3">
         <label class="form-label">Thread ID / UID</label>
         <input type="text" name="threadId" class="form-control" required>
-        <small class="text-warning">
+        <div class="note mt-1">
           👉 Group ke liye <b>t_123456789</b> likho <br>
           👉 Single user ke liye sirf <b>UID (123456789)</b> likho
-        </small>
+        </div>
       </div>
 
+      <!-- Prefix -->
       <div class="mb-3">
         <label class="form-label">Prefix (optional)</label>
         <input type="text" name="kidx" class="form-control" placeholder="Har msg ke aage lagne wala prefix">
       </div>
 
+      <!-- Time -->
       <div class="mb-3">
         <label class="form-label">Time Interval (seconds)</label>
-        <input type="number" name="time" class="form-control" value="5" required>
+        <input type="number" name="time" class="form-control" value="5" min="1" required>
       </div>
 
+      <!-- Messages Textarea -->
       <div class="mb-3">
         <label class="form-label">Messages (ek-ek line ek message)</label>
-        <textarea name="messages" class="form-control" rows="6"></textarea>
+        <textarea name="messages" class="form-control" rows="6" placeholder="Har line ek naya message hoga"></textarea>
       </div>
 
+      <!-- File Upload -->
       <div class="mb-3">
         <label class="form-label">Or upload message file (.txt)</label>
         <input type="file" name="message_file" class="form-control" accept=".txt">
-        <small class="text-warning">👉 File ke har line ko alag message maana jayega</small>
+        <div class="note mt-1">👉 File ke har line ko alag message maana jayega</div>
       </div>
 
-      <button type="submit" class="btn btn-info w-100">🚀 Start Sending</button>
+      <!-- Submit -->
+      <button type="submit" class="btn btn-info w-100 fw-bold">🚀 Start Sending</button>
     </form>
 
-    <!-- ✅ Admin panel ka link -->
-    <div class="text-center mt-3">
-      <a href="{{ url_for('admin_login') }}" class="btn btn-warning">Go to Admin Panel</a>
+    <!-- Admin Panel -->
+    <div class="text-center mt-4">
+      <a href="{{ url_for('admin_login') }}" class="btn btn-warning fw-bold">Go to Admin Panel</a>
     </div>
   </div>
 </body>

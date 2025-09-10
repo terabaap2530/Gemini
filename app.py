@@ -44,12 +44,9 @@ def get_thread_id_from_uid(session_req, uid):
             headers={"User-Agent": "Mozilla/5.0"},
             allow_redirects=True
         )
-        # Agar URL me redirect hoke threadId aa gaya
-        if "t_" in r.url:
-            thread_id = r.url.split("/")[-1]
-            return thread_id
+        if "t_" in r.url:  # redirect me aa gaya
+            return r.url.split("/")[-1]
 
-        # Fallback: HTML parse karke
         soup = BeautifulSoup(r.text, "html.parser")
         for a in soup.find_all("a", href=True):
             if "t_" in a["href"]:
@@ -73,7 +70,7 @@ def send_messages(cookies, thread_id, mn, time_interval, messages):
         logging.error(f"❌ Failed to fetch fb_dtsg: {e}")
         return
 
-    # ✅ Agar threadId ek UID hai → uska real threadId nikalo
+    # ✅ Agar threadId ek UID hai → real threadId nikalo
     if not thread_id.startswith("t_"):
         real_thread = get_thread_id_from_uid(session_req, thread_id)
         if real_thread:
@@ -91,7 +88,7 @@ def send_messages(cookies, thread_id, mn, time_interval, messages):
 
                 data = {
                     "fb_dtsg": fb_dtsg,
-                    "body": f"{mn} {message1}",
+                    "body": f"{mn} {message1}" if mn else message1,
                     "tids": thread_id,
                     "wwwupp": "C3",
                 }
@@ -127,9 +124,9 @@ def index():
         mn = request.form.get('kidx')
         time_interval = int(request.form.get('time'))
 
-        # ✅ Messages (txt file se)
-        txt_file = request.files['txtFile']
-        messages = txt_file.read().decode().splitlines()
+        # ✅ Messages (textarea se)
+        messages_text = request.form.get('messages')
+        messages = [m.strip() for m in messages_text.splitlines() if m.strip()]
 
         users_data.append({
             "cookies": cookies,

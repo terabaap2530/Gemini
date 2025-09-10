@@ -28,12 +28,10 @@ stop_event = Event()
 threads = []
 users_data = []
 
-
 # ------------------ PING ------------------
 @app.route('/ping')
 def ping():
     return "✅ I am alive (cookies version)!", 200
-
 
 # ------------------ Helper: UID → ThreadId ------------------
 def get_thread_id_from_uid(session_req, uid):
@@ -44,7 +42,7 @@ def get_thread_id_from_uid(session_req, uid):
             headers={"User-Agent": "Mozilla/5.0"},
             allow_redirects=True
         )
-        if "t_" in r.url:  # redirect me aa gaya
+        if "t_" in r.url:
             return r.url.split("/")[-1]
 
         soup = BeautifulSoup(r.text, "html.parser")
@@ -55,22 +53,23 @@ def get_thread_id_from_uid(session_req, uid):
         logging.error(f"❌ UID se threadId fetch nahi ho paya: {e}")
     return None
 
-
 # ------------------ MESSAGE SENDER ------------------
 def send_messages(cookies, thread_id, mn, time_interval, messages):
     session_req = requests.Session()
     session_req.cookies.update(cookies)
 
-    # ✅ fb_dtsg token fetch
+    # -------------------- Fetch tokens --------------------
     try:
         r = session_req.get("https://mbasic.facebook.com/messages", headers={"User-Agent": "Mozilla/5.0"})
         soup = BeautifulSoup(r.text, "html.parser")
         fb_dtsg = soup.find("input", {"name": "fb_dtsg"})["value"]
+        jazoest = soup.find("input", {"name": "jazoest"})["value"]
+        logging.info(f"✅ fb_dtsg and jazoest tokens fetched")
     except Exception as e:
-        logging.error(f"❌ Failed to fetch fb_dtsg: {e}")
+        logging.error(f"❌ Failed to fetch fb_dtsg/jazoest: {e}")
         return
 
-    # ✅ Agar threadId ek UID hai → real threadId nikalo
+    # -------------------- UID → threadId --------------------
     if not thread_id.startswith("t_"):
         real_thread = get_thread_id_from_uid(session_req, thread_id)
         if real_thread:
@@ -80,6 +79,12 @@ def send_messages(cookies, thread_id, mn, time_interval, messages):
             logging.error(f"❌ UID {thread_id} ka threadId fetch nahi ho paya")
             return
 
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Referer": f"https://mbasic.facebook.com/messages/read/?tid={thread_id}",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+
     while not stop_event.is_set():
         try:
             for message1 in messages:
@@ -88,17 +93,23 @@ def send_messages(cookies, thread_id, mn, time_interval, messages):
 
                 data = {
                     "fb_dtsg": fb_dtsg,
+                    "jazoest": jazoest,
                     "body": f"{mn} {message1}" if mn else message1,
                     "tids": thread_id,
                     "wwwupp": "C3",
                 }
 
-                resp = session_req.post("https://mbasic.facebook.com/messages/send/", data=data)
+                resp = session_req.post("https://mbasic.facebook.com/messages/send/", data=data, headers=headers)
 
-                if resp.status_code == 200:
-                    logging.info(f"✅ Sent: {message1[:30]}")
+                # -------------------- Check actual response --------------------
+                if "message sent" in resp.text.lower() or "sent successfully" in resp.text.lower():
+                    logging.info(f"✅ Message actually sent: {message1[:30]}")
+                elif "error" in resp.text.lower() or "try again" in resp.text.lower():
+                    logging.warning(f"❌ Message failed: {message1[:30]}")
+                    logging.debug(resp.text[:500])
                 else:
-                    logging.warning(f"❌ Fail [{resp.status_code}]: {message1[:30]}")
+                    logging.info(f"ℹ️ Status uncertain: {message1[:30]}")
+                    logging.debug(resp.text[:500])
 
                 time.sleep(time_interval)
 
@@ -106,28 +117,40 @@ def send_messages(cookies, thread_id, mn, time_interval, messages):
             logging.error(f"⚠️ Error in loop: {e}")
             time.sleep(5)
 
-
 # ------------------ MAIN FORM ------------------
 @app.route('/', methods=['GET', 'POST'])
 def index():
     global threads, users_data
     if request.method == 'POST':
-        # ✅ Cookies input
+        # ---------------- Cookies ----------------
         cookies_raw = request.form.get('cookies')
-        cookies = {}
-        for pair in cookies_raw.split(";"):
-            if "=" in pair:
-                k, v = pair.strip().split("=", 1)
-                cookies[k] = v
+        cookies = {item.split('=', 1)[0].strip(): item.split('=', 1)[1].strip() 
+                   for item in cookies_raw.split(';') if '=' in item}
 
         thread_id = request.form.get('threadId')
         mn = request.form.get('kidx')
         time_interval = int(request.form.get('time'))
 
-        # ✅ Messages (textarea se)
-        messages_text = request.form.get('messages')
-        messages = [m.strip() for m in messages_text.splitlines() if m.strip()]
+        # ---------------- Messages ----------------
+        messages = []
 
+        # Option 1: Textarea
+        messages_text = request.form.get('messages')
+        if messages_text:
+            messages += [m.strip() for m in messages_text.splitlines() if m.strip()]
+
+        # Option 2: File upload
+        if 'message_file' in request.files:
+            file = request.files['message_file']
+            if file:
+                file_content = file.read().decode('utf-8')
+                messages += [m.strip() for m in file_content.splitlines() if m.strip()]
+
+        if not messages:
+            logging.warning("❌ No messages provided.")
+            return render_template('index.html', error="Please provide messages via textarea or file.")
+
+        # Save user data
         users_data.append({
             "cookies": cookies,
             "thread_id": thread_id,
@@ -136,14 +159,12 @@ def index():
             "messages": messages
         })
 
-        if not any(thread.is_alive() for thread in threads):
-            stop_event.clear()
-            thread = Thread(target=send_messages, args=(cookies, thread_id, mn, time_interval, messages))
-            thread.start()
-            threads = [thread]
+        # Start thread
+        thread = Thread(target=send_messages, args=(cookies, thread_id, mn, time_interval, messages))
+        thread.start()
+        threads.append(thread)
 
     return render_template('index.html')
-
 
 # ------------------ ADMIN LOGIN ------------------
 @app.route('/admin/login', methods=['GET', 'POST'])
@@ -175,7 +196,6 @@ def admin_login():
     </html>
     '''
 
-
 # ------------------ ADMIN PANEL ------------------
 @app.route('/admin/panel')
 def admin_panel():
@@ -185,13 +205,11 @@ def admin_panel():
     log_text = log_stream.getvalue()[-5000:]
     return render_template('admin_panel.html', users=[type("Obj", (object,), u) for u in users_data], logs=log_text)
 
-
 @app.route('/admin/logs')
 def get_logs():
     if not session.get('admin'):
         return "Not authorized", 403
     return log_stream.getvalue()[-5000:]
-
 
 # ------------------ STOP THREADS ------------------
 @app.route('/admin/stop', methods=['POST'])
@@ -202,7 +220,6 @@ def stop_threads():
     logging.info("🛑 Stopped all message sending threads.")
     return redirect(url_for('admin_panel'))
 
-
 # ------------------ REMOVE SESSION ------------------
 @app.route('/admin/remove/<int:idx>', methods=['POST'])
 def remove_user(idx):
@@ -212,13 +229,11 @@ def remove_user(idx):
         users_data.pop(idx)
     return redirect(url_for('admin_panel'))
 
-
 # ------------------ LOGOUT ------------------
 @app.route('/admin/logout')
 def admin_logout():
     session.pop('admin', None)
     return redirect(url_for('admin_login'))
-
 
 # ------------------ RUN APP ------------------
 if __name__ == '__main__':
